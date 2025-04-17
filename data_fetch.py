@@ -1,58 +1,50 @@
+import yfinance as yf
 import pandas as pd
-import numpy as np
-from datetime import datetime, timedelta
+import json
+import os
 
-# Static stock list (NSE/BSE)
+# Function to get cached stock list (static stock list for testing)
 def get_cached_stock_list(exchange):
+    # Sample stock list for NSE and BSE
     if exchange == "NSE":
-        return ["RELIANCE", "TCS", "INFY", "HDFCBANK"]
+        return ["RELIANCE.NS", "TCS.NS", "INFY.NS", "HDFC.NS", "ITC.NS"]
+    elif exchange == "BSE":
+        return ["500325.BO", "500180.BO", "500410.BO", "532500.BO", "500209.BO"]
     else:
-        return ["RELIANCE.BSE", "TCS.BSE", "INFY.BSE", "HDFCBANK.BSE"]
+        return []
 
-# Static stock data (mocked)
-def fetch_stock_data(symbol, exchange):
-    dates = pd.date_range(end=datetime.today(), periods=100)
-    prices = np.cumsum(np.random.randn(100)) + 200
-    df = pd.DataFrame({"Date": dates, "Close": prices})
-    df.set_index("Date", inplace=True)
-    return df
+# Function to fetch stock data using Yahoo Finance (via yfinance)
+def fetch_stock_data(ticker, exchange):
+    # Fetch historical stock data (1 year of daily data)
+    data = yf.download(ticker, period="1y", interval="1d")
+    return data
 
-# Fake prediction after last 15 days
+# Mock prediction data (you can replace with your ML model or any other method)
 def get_mock_predictions(df):
-    last_date = df.index[-1]
-    future_dates = [last_date + timedelta(days=i) for i in range(1, 16)]
-    last_price = df['Close'].iloc[-1]
-    trend = np.linspace(0, 5, 15)
-    noise = np.random.randn(15)
-    pred_prices = last_price + trend + noise
-    pred_df = pd.DataFrame({"Predicted": pred_prices}, index=future_dates)
-    return pred_df
+    # Generate a dummy prediction by shifting the closing price
+    prediction = df.copy()
+    prediction['Predicted'] = prediction['Close'] * (1 + (0.01 * np.random.randn(len(prediction))))
+    return prediction
 
-# Static news + earnings
-news_db = {
-    "RELIANCE": {
+# Mock function to get news and earnings
+def get_news_and_earnings(stock):
+    # Static mock news and earnings data
+    news_data = {
         "news": [
-            {"title": "Reliance Q4 profit up 12%, beats analyst expectations", "date": "2024-04-21", "impact": "positive"},
-            {"title": "Middle East tensions raise global oil prices; RIL stock reacts", "date": "2024-01-15", "impact": "negative"}
+            {
+                "date": "2025-04-18",
+                "title": "Reliance Industries announces strong quarterly results",
+                "impact": "positive"
+            },
+            {
+                "date": "2025-04-10",
+                "title": "Political tensions in India impact stock market",
+                "impact": "negative"
+            }
         ],
         "earnings": {
-            "Q3": "₹16,200 Cr profit, 8.2% YoY growth",
-            "Q4": "₹18,000 Cr profit, 12% YoY growth"
-        }
-    },
-    "TCS": {
-        "news": [
-            {"title": "TCS wins $1.5B contract from UK Govt", "date": "2024-03-05", "impact": "positive"},
-            {"title": "IT sector slowdown weighs on TCS revenue", "date": "2024-02-12", "impact": "negative"}
-        ],
-        "earnings": {
-            "Q3": "₹10,800 Cr profit, 5% YoY growth",
-            "Q4": "₹11,500 Cr profit, 7% YoY growth"
+            "Q1 2025": "EPS: ₹10.5, Revenue: ₹50,000 Crore",
+            "Q4 2024": "EPS: ₹8.7, Revenue: ₹45,000 Crore"
         }
     }
-}
-
-# Provide news/earnings for selected stock
-def get_news_and_earnings(symbol):
-    key = symbol.replace(".BSE", "")
-    return news_db.get(key, {})
+    return news_data
