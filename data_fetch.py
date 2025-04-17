@@ -2,7 +2,7 @@ import yfinance as yf
 import pandas as pd
 import json
 import os
-import numpy as np  # Add this import
+import numpy as np  # Make sure numpy is imported
 
 # Function to get cached stock list (static stock list for testing)
 def get_cached_stock_list(exchange):
@@ -24,7 +24,9 @@ def fetch_stock_data(ticker, exchange):
 def get_mock_predictions(df):
     # Generate a dummy prediction by shifting the closing price
     prediction = df.copy()
-    prediction['Predicted'] = prediction['Close'] * (1 + (0.01 * np.random.randn(len(prediction))))  # Corrected here
+    # Ensure np.random.randn matches the length of 'Close' column
+    random_noise = 0.01 * np.random.randn(len(prediction))  # Generate random noise
+    prediction['Predicted'] = prediction['Close'] * (1 + random_noise)  # Apply the noise to Close
     return prediction
 
 # Mock function to get news and earnings
