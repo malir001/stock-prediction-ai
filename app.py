@@ -1,57 +1,48 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
-from datetime import datetime, timedelta
 from data_fetch import get_cached_stock_list, fetch_stock_data, get_mock_predictions, get_news_and_earnings
 
-st.set_page_config(page_title="📈 Stock Prediction AI", layout="wide")
-st.title("📈 Stock Prediction AI")
+# Set page configuration for a wider layout
+st.set_page_config(layout="wide")
 
-# Layout columns
-col1, col2 = st.columns([3, 1])
+# Select stock from cached list (static data)
+exchange = st.selectbox('Select Stock Exchange', ['NSE', 'BSE'])
+stocks = get_cached_stock_list(exchange)
+stock_symbol = st.selectbox('Select Stock', stocks)
 
-# Choose exchange
-exchange = st.selectbox("Select Exchange", ["NSE", "BSE"])
+# Fetch stock data from Yahoo Finance
+df = fetch_stock_data(stock_symbol, exchange)
 
-# Load static stock list
-stock_list = get_cached_stock_list(exchange)
-selected_stock = st.selectbox("🔍 Choose a Stock", stock_list)
+# Display the raw data
+st.write(f"Displaying data for: {stock_symbol}")
+st.dataframe(df)
 
-# Main chart area
-with col1:
-    if selected_stock:
-        df = fetch_stock_data(selected_stock, exchange)
-        prediction = get_mock_predictions(df)
+# Get predictions based on mock data
+prediction = get_mock_predictions(df)
 
-        st.subheader(f"📊 Historical + Predicted Prices for {selected_stock} ({exchange})")
+# Plotting stock price and predicted prices
+st.subheader(f"Stock Price vs Predicted Price for {stock_symbol}")
+fig, ax = plt.subplots(figsize=(12, 6))
+ax.plot(df.index, df['Close'], label='Close Price', color='blue')
+ax.plot(prediction.index, prediction['Predicted'], label='Predicted Price', linestyle='--', color='red')
+ax.set_xlabel('Date')
+ax.set_ylabel('Price')
+ax.set_title(f'{stock_symbol} Stock Price Prediction')
+ax.legend()
+st.pyplot(fig)
 
-        fig, ax = plt.subplots(figsize=(10, 4))
-        ax.plot(df.index, df['Close'], label="Actual", linewidth=2)
-        ax.plot(prediction.index, prediction['Predicted'], label="Prediction", linestyle='--')
-        ax.set_xlabel("Date")
-        ax.set_ylabel("Price (₹)")
-        ax.legend()
-        st.pyplot(fig)
+# Fetch mock news and earnings for the stock
+news_data = get_news_and_earnings(stock_symbol)
 
-        st.markdown("### 📄 Raw Data")
-        st.dataframe(df.tail())
+# Display news in a side panel
+with st.sidebar:
+    st.subheader("News & Earnings")
+    st.write("### Latest News")
+    for news in news_data['news']:
+        st.write(f"**{news['date']}**: {news['title']} ({news['impact']})")
 
-# News + Earnings Panel
-with col2:
-    st.markdown("### 📰 News & Earnings")
-    news_data = get_news_and_earnings(selected_stock)
+    st.write("### Earnings Reports")
+    for quarter, earnings in news_data['earnings'].items():
+        st.write(f"**{quarter}**: {earnings}")
 
-    if news_data:
-        for item in news_data.get("news", []):
-            color = "green" if item["impact"] == "positive" else ("red" if item["impact"] == "negative" else "gray")
-            st.markdown(f"<div style='padding:8px; border-left: 4px solid {color}; margin-bottom: 10px;'>"
-                        f"<strong>{item['date']}</strong><br>{item['title']}"
-                        f"</div>", unsafe_allow_html=True)
-
-        st.markdown("---")
-        st.markdown("### 📊 Earnings")
-        for quarter, report in news_data.get("earnings", {}).items():
-            st.markdown(f"**{quarter}:** {report}")
-    else:
-        st.info("No news/earnings data available for this stock.")
