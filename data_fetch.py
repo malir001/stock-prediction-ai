@@ -1,54 +1,51 @@
 import yfinance as yf
 import pandas as pd
-import json
+import numpy as np
 import os
-import numpy as np  # Ensure numpy is imported
 
-# Function to get cached stock list (static stock list for testing)
-def get_cached_stock_list(exchange):
-    # Sample stock list for NSE and BSE
-    if exchange == "NSE":
-        return ["RELIANCE.NS", "TCS.NS", "INFY.NS", "HDFC.NS", "ITC.NS"]
-    elif exchange == "BSE":
-        return ["500325.BO", "500180.BO", "500410.BO", "532500.BO", "500209.BO"]
-    else:
-        return []
+# Function to fetch stock data (static method for simplicity)
+def fetch_stock_data(ticker, start_date, end_date):
+    # Using Yahoo Finance API (yfinance) to fetch historical data
+    stock_data = yf.download(ticker, start=start_date, end=end_date)
+    return stock_data
 
-# Function to fetch stock data using Yahoo Finance (via yfinance)
-def fetch_stock_data(ticker, exchange):
-    # Fetch historical stock data (1 year of daily data)
-    data = yf.download(ticker, period="1y", interval="1d")
-    return data
-
-# Mock prediction data (you can replace with your ML model or any other method)
+# Function to simulate predictions with noise
 def get_mock_predictions(df):
-    # Generate a dummy prediction by shifting the closing price
+    # Copy the original dataframe to avoid modifying it directly
     prediction = df.copy()
-    # Ensure np.random.randn matches the length of 'Close' column
-    random_noise = 0.01 * np.random.randn(len(prediction))  # Generate random noise
-    # Convert random_noise to a pandas Series to align it properly with 'Close' column
-    prediction['Predicted'] = prediction['Close'] * (1 + pd.Series(random_noise, index=prediction.index))  # Apply the noise to Close
+
+    # Ensure random noise matches the length of the 'Close' column
+    random_noise = 0.01 * np.random.randn(len(prediction))  # Noise for each row in the DataFrame
+    
+    # Apply the noise to 'Close' to create predictions
+    prediction['Predicted'] = prediction['Close'] * (1 + random_noise)  # Apply the noise
+    
     return prediction
 
-# Mock function to get news and earnings
-def get_news_and_earnings(stock):
-    # Static mock news and earnings data
-    news_data = {
-        "news": [
-            {
-                "date": "2025-04-18",
-                "title": "Reliance Industries announces strong quarterly results",
-                "impact": "positive"
-            },
-            {
-                "date": "2025-04-10",
-                "title": "Political tensions in India impact stock market",
-                "impact": "negative"
-            }
-        ],
-        "earnings": {
-            "Q1 2025": "EPS: ₹10.5, Revenue: ₹50,000 Crore",
-            "Q4 2024": "EPS: ₹8.7, Revenue: ₹45,000 Crore"
-        }
-    }
-    return news_data
+# Function to load stock list (static example)
+def load_stock_list():
+    # Static stock list as example (you could replace this with your actual data)
+    stock_list = [
+        {'ticker': 'AAPL', 'name': 'Apple Inc.'},
+        {'ticker': 'GOOGL', 'name': 'Alphabet Inc.'},
+        {'ticker': 'AMZN', 'name': 'Amazon.com Inc.'},
+        {'ticker': 'MSFT', 'name': 'Microsoft Corp.'},
+        {'ticker': 'TSLA', 'name': 'Tesla Inc.'},
+    ]
+    
+    # Returning as a pandas DataFrame
+    return pd.DataFrame(stock_list)
+
+# Sample function to save stock data as CSV (for use with static data)
+def save_stock_data(df, ticker):
+    filename = f"stock_data_{ticker}.csv"
+    df.to_csv(filename, index=False)
+
+# Example of loading saved stock data from CSV
+def load_saved_stock_data(ticker):
+    filename = f"stock_data_{ticker}.csv"
+    if os.path.exists(filename):
+        return pd.read_csv(filename)
+    else:
+        print(f"Data for {ticker} not found, downloading fresh data.")
+        return None
