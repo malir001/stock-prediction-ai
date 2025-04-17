@@ -1,32 +1,25 @@
-
 import streamlit as st
-from data_fetch import fetch_stock_data
-from model import prepare_data, build_model
-from sentiment import analyze_sentiment
-import matplotlib.pyplot as plt
-import numpy as np
+from data_fetch import get_cached_stock_list, fetch_stock_data
 
-st.title("📈 AI-Based Stock Forecasting")
+st.set_page_config(page_title="Stock Prediction AI", layout="centered")
+st.title("📈 Stock Prediction AI")
 
-ticker = st.text_input("Enter Stock Ticker (e.g., AAPL)", "AAPL")
-data = fetch_stock_data(ticker)
-st.write("Recent Data:", data.tail())
+# Cache the stock list to avoid re-fetching
+@st.cache_data
+def load_stock_list():
+    return get_cached_stock_list()
 
-X, y, scaler = prepare_data(data)
-model = build_model((X.shape[1], 1))
-model.fit(X, y, epochs=5, batch_size=32, verbose=0)
+# Get stock list and show dropdown
+stock_list = load_stock_list()
+selected_stock = st.selectbox("🔍 Choose a Stock", stock_list)
 
-predicted = model.predict(X)
-predicted_prices = scaler.inverse_transform(predicted)
+# Fetch and show data
+if selected_stock:
+    st.subheader(f"Stock History: {selected_stock}")
+    df = fetch_stock_data(selected_stock)
 
-st.subheader("📊 Actual vs Predicted Closing Prices")
-fig, ax = plt.subplots()
-ax.plot(data['Close'][60:].values, label='Actual')
-ax.plot(predicted_prices, label='Predicted')
-ax.legend()
-st.pyplot(fig)
-
-st.subheader("📰 News Sentiment Analysis (Sample)")
-news_sample = "Company revenue rose sharply in the last quarter beating expectations"
-sentiment = analyze_sentiment(news_sample)
-st.write("Sentiment Score:", sentiment)
+    if df is not None and not df.empty:
+        st.line_chart(df['Close'])
+        st.write(df.tail())
+    else:
+        st.warning("No data available. Try another stock.")
